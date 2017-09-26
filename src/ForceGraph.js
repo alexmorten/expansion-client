@@ -31,18 +31,23 @@ class ForceGraph extends React.Component {
       const forceY = d3.forceY(this.height / 2).strength(0.1)
 
       var simulation = d3.forceSimulation()
-      .force("link",d3.forceLink().id((d)=>{return d.id}).distance(15))
+      .force("link",d3.forceLink().id((d)=>{return d.id}).distance(20))
       .force("charge",d3.forceManyBody().strength(-50))
       .force("x",forceX)
       .force("y",forceY)
       // .force("center",d3.forceCenter(this.width/2,this.height/2))
-      .alphaDecay(0.03)
+      .alphaDecay(0.05)
 
       var links = chart.selectAll(".link").data(data.links,d=>d.id);
       links.enter().append("line")
       .attr("class","link")
       .attr("stroke-width",1);
-      links.exit().remove();
+      links.exit()
+      .attr("opacity",1)
+      .transition().delay(500).duration(500)
+      .attr("opacity",0)
+      .transition()
+      .remove();
       var nodes = chart.selectAll(".node").data(data.nodes,(d)=>d.id);
       var nodesUpdate = nodes.enter().append("circle");
       nodes.merge(nodesUpdate)
@@ -59,7 +64,13 @@ class ForceGraph extends React.Component {
         this.props.onNodeClick(d);
       })
       .append("title").text(d=>d.id)
-      nodes.exit().remove();
+      nodes.exit()
+      .transition().delay(d=>(d.id===this.props.lastClickedNode? 0 : 500)).duration((500))
+      .attr("r",10)
+      .transition().duration(500)
+      .attr("r",0)
+      .transition()
+      .remove();
 
 
 

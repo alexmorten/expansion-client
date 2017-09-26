@@ -1,7 +1,11 @@
 import React from "react";
 import ForceGraph from "./ForceGraph";
 import socketIOClient from "socket.io-client";
-const endpoint = "http://localhost:4001";
+var endpoint = "http://localhost:4001";
+//var endpoint="https://expansion-server.herokuapp.com"
+if (process.env.NODE_ENV==="production") {
+ endpoint="https://expansion-server.herokuapp.com"
+}
 class Game extends React.Component{
   state={
     nodes:[],
@@ -10,6 +14,7 @@ class Game extends React.Component{
     id:null,
     playerAtTurn:"",
     gameStopped:false,
+    lastClickedNode:null
   }
   componentDidMount(){
     this.nextId=0;
@@ -17,6 +22,7 @@ class Game extends React.Component{
     this.socket.on("set_id",(data)=>this.setState({id:data.id}));
     this.socket.on("game_started",(data)=>this.setState({nodes:data.nodes,links:data.links,gameInitiated:true,playerAtTurn:data.nextPlayer}));
     this.socket.on("game_stopped",(data)=>{window.location.reload()});
+    this.socket.on("turn_skipped",(data)=>{this.setState({playerAtTurn:data.nextPlayer})})
     this.socket.on('turn_made',(data)=>{
       console.log(data);
       console.log("received turn");
@@ -38,7 +44,7 @@ class Game extends React.Component{
   }
   handleNodeExplosion(node){
     var node_id = node.id;
-
+    this.setState({lastClickedNode:node.id});
     var connectedLinks = this.state.links.filter(link=>(link.source.id === node_id || link.target.id === node_id));
     var directlyConnectedNodes = this.state.nodes.filter(node=>{
       return connectedLinks.filter(link=>(link.source.id === node.id || link.target.id == node.id)).length>0
@@ -47,7 +53,7 @@ class Game extends React.Component{
     var destroyedNodes = this.state.nodes.filter(node=>!(
       directlyConnectedNodes.filter(directNode=>(
         directNode.id === node.id
-      )).length === 0 || node.owner
+      )).length === 0 //|| node.owner
     ));
     var restLinks=this.state.links.filter(link=>(
       destroyedNodes.filter(node=>(node.id===link.target.id||node.id===link.source.id)).length===0
@@ -79,6 +85,9 @@ class Game extends React.Component{
     });
     return scoreArr;
   }
+  handleSkip=()=>{
+    this.socket.emit("skip");
+  }
   render(){
     console.log("rendering");
     if(!this.state.gameInitiated){
@@ -101,10 +110,12 @@ class Game extends React.Component{
         {scoreItems}
       </div>
       <div style={{backgroundColor:(this.state.playerAtTurn===this.state.id?"#d9eef5":"darkgrey"),transition:"all 500ms"}}>
+      <button onClick={this.handleSkip}>Skip</button>
        <ForceGraph
         data={{nodes:this.state.nodes,links:this.state.links}}
         onNodeClick={this.handleNodeClick}
         thisPlayer={this.state.id}
+        lastClickedNode={this.state.lastClickedNode}
       />
       </div>
       </div>
