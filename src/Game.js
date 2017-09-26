@@ -61,25 +61,52 @@ class Game extends React.Component{
   handleNodeClick=(d)=>{
     this.socket.emit("turn",{id:d.id});
   }
+  getScores(){
+    var scores = {};
+    var nodes = this.state.nodes.forEach(node=>{
+      if(node.owner){
+        if(scores[node.owner]){
+          scores[node.owner]++;
+        }else{
+          scores[node.owner]=1;
+        }
+      }
+    });
+    var scoreArr = [];
+    var players = Object.keys(scores);
+    players.forEach(player=>{
+      scoreArr.push({player:player,score:scores[player]});
+    });
+    return scoreArr;
+  }
   render(){
     console.log("rendering");
     if(!this.state.gameInitiated){
       return(
         <div>
           <h2>Loading</h2>
-          {this.state.id ? `Your id is: '${this.state.id}'` : ""}
         </div>
       )
     }
+    var scores = this.getScores();
+    var scoreItems = scores.map(score=>(
+      <p key={score.player} style={{color:(score.player===this.state.id? "blue":"red")}}>
+        {score.player}: {score.score} Nodes
+      </p>
+    ));
     return(
       <div>
-      <p>  {this.state.id ? `Your id is: '${this.state.id}'` : ""}</p>
-      <p>{this.state.id === this.state.playerAtTurn ? "Your turn!":"pls wait"}</p>
-
+      <h4>Scores</h4>
+      <div>
+        {scoreItems}
+      </div>
+      <div style={{backgroundColor:(this.state.playerAtTurn===this.state.id?"#d9eef5":"darkgrey"),transition:"all 500ms"}}>
        <ForceGraph
         data={{nodes:this.state.nodes,links:this.state.links}}
         onNodeClick={this.handleNodeClick}
-        thisPlayer={this.state.id}/>
+        thisPlayer={this.state.id}
+      />
+      </div>
       </div>
     )
   }
